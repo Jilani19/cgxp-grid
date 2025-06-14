@@ -1,0 +1,8 @@
+.ag-theme-alpine {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.ag-root-wrapper {
+  border: 1px solid #ccc !important;
+}
