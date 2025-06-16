@@ -6338,6 +6338,10 @@ button.ag-side-button-button:focus {
   left: 0;
   pointer-events: none;
 }
+.ag-paging-panel > * {
+    margin: 10 var(--ag-cell-horizontal-padding);
+}
+
 .ag-checkbox-input-wrapper.ag-checked::after {
   content: var(--ag-icon-font-code-checkbox-checked, "\f106");
   color: var(--ag-checkbox-checked-color);
