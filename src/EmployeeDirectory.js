@@ -1,14 +1,18 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AgGridReact } from 'ag-grid-react';
+
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import 'ag-grid-community/styles/ag-theme-balham.css';
+import 'ag-grid-community/styles/ag-theme-material.css';
+
 import { employeeData } from './employeeData';
 import './EmployeeDirectory.css';
 
 const EmployeeDirectory = () => {
   const [rowData, setRowData] = useState(employeeData);
-  const [editInProgress, setEditInProgress] = useState(false);
   const [originalData] = useState(employeeData);
+  const [editInProgress, setEditInProgress] = useState(false);
   const [columnVisible, setColumnVisible] = useState({
     id: true,
     name: true,
@@ -20,375 +24,258 @@ const EmployeeDirectory = () => {
   });
   const [isMobile, setIsMobile] = useState(false);
   const [gridApi, setGridApi] = useState(null);
+  const [gridColumnApi, setGridColumnApi] = useState(null);
+  const [gridTheme, setGridTheme] = useState('ag-theme-alpine');
+  const [customColors, setCustomColors] = useState({
+    backgroundColor: '#ffffff',
+    foregroundColor: '#000000',
+    headerTextColor: '#000000',
+    headerBackgroundColor: '#e0e0e0',
+    oddRowBackgroundColor: '#f9f9f9',
+    resizeHandleColor: '#888888'
+  });
+  const [frozenColumns, setFrozenColumns] = useState(['id', 'name']); 
 
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const columnDefs = useMemo(() => [
-    { 
-      field: 'id', 
+    {
+      field: 'id',
       headerName: isMobile ? 'ID' : 'Employee ID',
       width: isMobile ? 70 : 120,
-      filter: 'agNumberColumnFilter',
-      sort: 'asc',
       editable: false,
-      lockPosition: true,
+      pinned: frozenColumns.includes('id') ? 'left' : null,
       cellStyle: { backgroundColor: '#f5f5f5' },
-      hide: !columnVisible.id,
-      pinned: isMobile ? false : 'left',
-      headerTooltip: 'Employee ID',
-      tooltipField: 'id'
+      hide: !columnVisible.id
     },
-    { 
-      field: 'name', 
+    {
+      field: 'name',
       headerName: isMobile ? 'Name' : 'Full Name',
-      filter: 'agTextColumnFilter',
-      floatingFilter: !isMobile,
-      cellStyle: { fontWeight: 'bold' },
       editable: true,
       cellEditor: 'agTextCellEditor',
-      cellEditorParams: {
-        maxLength: 50
-      },
+      pinned: frozenColumns.includes('name') ? 'left' : null,
       valueSetter: params => {
-        setEditInProgress(true);
         params.data.name = params.newValue;
+        setEditInProgress(true);
         return true;
       },
-      hide: !columnVisible.name,
-      width: isMobile ? 120 : undefined,
-      tooltipField: 'name'
+      hide: !columnVisible.name
     },
-    { 
-      field: 'position', 
+    {
+      field: 'position',
       headerName: isMobile ? 'Role' : 'Job Title',
-      filter: 'agSetColumnFilter',
-      filterParams: {
-        values: [...new Set(employeeData.map(e => e.position))].sort()
-      },
       editable: true,
       cellEditor: 'agTextCellEditor',
-      valueSetter: params => {
-        setEditInProgress(true);
-        params.data.position = params.newValue;
-        return true;
-      },
-      hide: !columnVisible.position,
-      width: isMobile ? 120 : undefined,
-      tooltipField: 'position'
+      pinned: frozenColumns.includes('position') ? 'left' : null,
+      hide: !columnVisible.position
     },
-    { 
-      field: 'department', 
+    {
+      field: 'department',
       headerName: isMobile ? 'Dept' : 'Department',
-      filter: 'agSetColumnFilter',
-      filterParams: {
-        values: [...new Set(employeeData.map(e => e.department))].sort()
-      },
       editable: true,
       cellEditor: 'agSelectCellEditor',
+      pinned: frozenColumns.includes('department') ? 'left' : null,
       cellEditorParams: {
-        values: [...new Set(employeeData.map(e => e.department))].sort()
+        values: [...new Set(employeeData.map(e => e.department))]
       },
-      valueSetter: params => {
-        setEditInProgress(true);
-        params.data.department = params.newValue;
-        return true;
-      },
-      hide: !columnVisible.department,
-      width: isMobile ? 100 : undefined,
-      tooltipField: 'department'
+      hide: !columnVisible.department
     },
-    { 
-      field: 'salary', 
+    {
+      field: 'salary',
       headerName: isMobile ? 'Salary' : 'Annual Salary',
-      filter: 'agNumberColumnFilter',
-      valueFormatter: params => `$${params.value.toLocaleString()}`,
-      filterParams: {
-        filterOptions: ['equals', 'lessThan', 'greaterThan'],
-        suppressAndOrCondition: true
-      },
       editable: true,
       cellEditor: 'agNumberCellEditor',
-      cellEditorParams: {
-        min: 30000,
-        max: 500000,
-        precision: 0
-      },
-      valueParser: params => Number(params.newValue),
+      pinned: frozenColumns.includes('salary') ? 'left' : null,
+      valueFormatter: params => `$${params.value.toLocaleString()}`,
       valueSetter: params => {
+        params.data.salary = Number(params.newValue);
         setEditInProgress(true);
-        params.data.salary = params.newValue;
         return true;
       },
-      cellStyle: params => ({
-        color: params.value > 100000 ? '#2e7d32' : '#c62828',
-        fontWeight: '600'
-      }),
-      hide: !columnVisible.salary,
-      width: isMobile ? 100 : undefined,
-      tooltipField: 'salary',
-      tooltipValueGetter: params => `$${params.value.toLocaleString()}`
+      hide: !columnVisible.salary
     },
-    { 
-      field: 'hireDate', 
+    {
+      field: 'hireDate',
       headerName: isMobile ? 'Hired' : 'Hire Date',
-      filter: 'agDateColumnFilter',
-      valueFormatter: params => isMobile 
-        ? new Date(params.value).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric' })
-        : new Date(params.value).toLocaleDateString(),
-      filterParams: {
-        comparator: (filterDate, cellValue) => {
-          return new Date(cellValue) - filterDate;
-        }
-      },
       editable: true,
       cellEditor: 'agDateCellEditor',
-      valueSetter: params => {
-        setEditInProgress(true);
-        params.data.hireDate = params.newValue;
-        return true;
-      },
-      hide: !columnVisible.hireDate,
-      width: isMobile ? 100 : undefined,
-      tooltipValueGetter: params => new Date(params.value).toLocaleDateString()
+      pinned: frozenColumns.includes('hireDate') ? 'left' : null,
+      valueFormatter: params => new Date(params.value).toLocaleDateString(),
+      hide: !columnVisible.hireDate
     },
-    { 
-      field: 'email', 
+    {
+      field: 'email',
       headerName: isMobile ? 'Email' : 'Email Address',
-      filter: 'agTextColumnFilter',
       editable: true,
       cellEditor: 'agTextCellEditor',
-      cellEditorParams: {
-        maxLength: 100
-      },
-      valueSetter: params => {
-        setEditInProgress(true);
-        params.data.email = params.newValue;
-        return true;
-      },
-      hide: !columnVisible.email,
-      width: isMobile ? 150 : undefined,
-      tooltipField: 'email'
+      pinned: frozenColumns.includes('email') ? 'left' : null,
+      hide: !columnVisible.email
     }
-  ], [columnVisible, isMobile]);
+  ], [columnVisible, isMobile, frozenColumns]);
 
   const defaultColDef = useMemo(() => ({
     sortable: true,
-    resizable: true,
     filter: true,
-    floatingFilter: !isMobile,
-    flex: isMobile ? undefined : 1,
-    minWidth: isMobile ? 80 : 150,
-    editable: false,
-    cellClass: 'editable-cell',
-    wrapText: true,
-    autoHeight: true,
-    suppressSizeToFit: isMobile,
-    tooltipComponentParams: {
-      color: '#fff',
-      backgroundColor: '#333',
-      borderRadius: '5px',
-      padding: '10px',
-      maxWidth: '300px'
-    }
-  }), [isMobile]);
+    resizable: true,
+    floatingFilter: true,
+    cellClass: 'custom-cell'
+  }), []);
 
-  const paginationProps = useMemo(() => ({
-    pagination: true,
-    paginationPageSize: isMobile ? 10 : 15,
-    paginationAutoPageSize: false,
-    suppressPaginationPanel: isMobile,
-    domLayout: isMobile ? 'autoHeight' : 'normal'
-  }), [isMobile]);
+  const onGridReady = params => {
+    setGridApi(params.api);
+    setGridColumnApi(params.columnApi);
+    params.api.sizeColumnsToFit();
+  };
 
-  const handleSave = useCallback(() => {
-    console.log('All changes saved:', rowData);
-    alert('All changes saved successfully!');
+  const handleSave = () => {
+    console.log('Saved data:', rowData);
+    alert('Changes saved!');
     setEditInProgress(false);
-  }, [rowData]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleRevert = () => {
     setRowData([...originalData]);
     setEditInProgress(false);
-    console.log('All changes reverted');
-  }, [originalData]);
+  };
 
-  const onCellValueChanged = useCallback((params) => {
-    console.log('Cell edited:', params);
-    if (!editInProgress) setEditInProgress(true);
-  }, [editInProgress]);
+  const exportCSV = () => {
+    if (gridApi) {
+      gridApi.exportDataAsCsv();
+    }
+  };
 
-  const toggleColumnVisibility = (column) => {
+  const toggleColumn = col => {
     setColumnVisible(prev => ({
       ...prev,
-      [column]: !prev[column]
+      [col]: !prev[col]
     }));
   };
 
-  const onGridReady = useCallback((params) => {
-    setGridApi(params.api);
-    if (isMobile) {
-      params.api.sizeColumnsToFit();
-    } else {
-      params.api.sizeColumnsToFit();
-    }
-  }, [isMobile]);
-
-  const MobilePagination = ({ api }) => {
-    const [currentPage, setCurrentPage] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
-
-    useEffect(() => {
-      if (api) {
-        setCurrentPage(api.paginationGetCurrentPage());
-        setTotalPages(api.paginationGetTotalPages());
-        
-        const listener = () => {
-          setCurrentPage(api.paginationGetCurrentPage());
-          setTotalPages(api.paginationGetTotalPages());
-        };
-        
-        api.addEventListener('paginationChanged', listener);
-        return () => api.removeEventListener('paginationChanged', listener);
+  const toggleFreezeColumn = (column) => {
+    setFrozenColumns(prev => {
+      if (prev.includes(column)) {
+        return prev.filter(col => col !== column);
+      } else {
+        return [...prev, column];
       }
-    }, [api]);
-
-    const goToPage = (page) => {
-      api.paginationGoToPage(page);
-    };
-
-    const goToNext = () => {
-      api.paginationGoToNextPage();
-    };
-
-    const goToPrevious = () => {
-      api.paginationGoToPreviousPage();
-    };
-
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="mobile-pagination">
-        <button 
-          onClick={goToPrevious} 
-          disabled={currentPage === 0}
-          className="pagination-button prev-button"
-        >
-          Previous
-        </button>
-        
-        <span className="page-info">
-          {currentPage + 1} / {totalPages}
-        </span>
-        
-        <button 
-          onClick={goToNext} 
-          disabled={currentPage >= totalPages - 1}
-          className="pagination-button next-button"
-        >
-          Next
-        </button>
-      </div>
-    );
+    });
   };
 
   return (
-    <div className="employee-directory-container">
-      <h1 className="directory-title">cGxP Tech Employee Directory</h1>
-      
-      <div className="control-panel">
-        <div className="action-buttons">
-          <button
-            onClick={handleSave}
-            disabled={!editInProgress}
-            className={`save-button ${editInProgress ? 'active' : 'disabled'}`}
-          >
-            {isMobile ? 'Save' : 'Save All Changes'}
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={!editInProgress}
-            className={`cancel-button ${editInProgress ? 'active' : 'disabled'}`}
-          >
-            {isMobile ? 'Revert' : 'Revert All'}
-          </button>
-        </div>
-        
-        <div className="column-toggle-container">
-          <span className="column-toggle-label">Columns:</span>
-          <div className="column-checkboxes">
-            {Object.keys(columnVisible).map(col => (
-              <label key={col} className="column-toggle-item">
-                <input
-                  type="checkbox"
-                  checked={columnVisible[col]}
-                  onChange={() => toggleColumnVisibility(col)}
-                />
-                <span>{isMobile ? col.substring(0, 3) : col}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        
-        {editInProgress && (
-          <span className="unsaved-changes-message">
-            {isMobile ? 'Unsaved changes!' : 'You have unsaved changes!'}
-          </span>
-        )}
+    <div
+      className="employee-directory-container"
+      style={{
+        backgroundColor: customColors.backgroundColor,
+        color: customColors.foregroundColor
+      }}
+    >
+      <h1>cGxP-Tech Employee Directory</h1>
+
+      <div className="controls">
+        <button onClick={handleSave} disabled={!editInProgress}>Save</button>
+        <button onClick={handleRevert} disabled={!editInProgress}>Revert</button>
+        <button onClick={exportCSV}>Export CSV</button>
       </div>
 
-      <div className={`ag-theme-alpine grid-container ${isMobile ? 'mobile-view' : ''}`}>
+      <div className="theme-buttons">
+        <button onClick={() => setGridTheme('ag-theme-alpine')}>Alpine</button>
+        <button onClick={() => setGridTheme('ag-theme-balham')}>Balham</button>
+        <button onClick={() => setGridTheme('ag-theme-material')}>Material</button>
+        <button onClick={() => setGridTheme('ag-theme-quartz')}>Quartz</button>
+      </div>
+
+      <div className="column-toggles">
+                <h3>Hide Columns:</h3>
+
+        {Object.keys(columnVisible).map(col => (
+          <label key={col}>
+            <input
+              type="checkbox"
+              checked={columnVisible[col]}
+              onChange={() => toggleColumn(col)}
+            />
+            {col}
+          </label>
+        ))}
+      </div>
+
+      <div className="freeze-controls">
+        <h3>Freeze Columns:</h3>
+        {Object.keys(columnVisible).map(col => (
+          <label key={`freeze-${col}`}>
+            <input
+              type="checkbox"
+              checked={frozenColumns.includes(col)}
+              onChange={() => toggleFreezeColumn(col)}
+              disabled={!columnVisible[col]}
+            />
+            {col}
+          </label>
+        ))}
+      </div>
+
+      <div className="color-pickers">
+        <label>Background <input type="color" value={customColors.backgroundColor} onChange={e => setCustomColors({ ...customColors, backgroundColor: e.target.value })} /></label>
+        <label>Text <input type="color" value={customColors.foregroundColor} onChange={e => setCustomColors({ ...customColors, foregroundColor: e.target.value })} /></label>
+        <label>Header Text <input type="color" value={customColors.headerTextColor} onChange={e => setCustomColors({ ...customColors, headerTextColor: e.target.value })} /></label>
+        <label>Header BG <input type="color" value={customColors.headerBackgroundColor} onChange={e => setCustomColors({ ...customColors, headerBackgroundColor: e.target.value })} /></label>
+        <label>Odd Row BG <input type="color" value={customColors.oddRowBackgroundColor} onChange={e => setCustomColors({ ...customColors, oddRowBackgroundColor: e.target.value })} /></label>
+        <label>Resize <input type="color" value={customColors.resizeHandleColor} onChange={e => setCustomColors({ ...customColors, resizeHandleColor: e.target.value })} /></label>
+      </div>
+
+      <div className={gridTheme} style={{ height: 500, width: '100%' }}>
         <AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
-          {...paginationProps}
-          suppressRowClickSelection={true}
           onGridReady={onGridReady}
-          onCellValueChanged={onCellValueChanged}
-          stopEditingWhenCellsLoseFocus={true}
-          singleClickEdit={true}
-          undoRedoCellEditing={true}
-          undoRedoCellEditingLimit={20}
-          getRowStyle={params => ({
-            background: editInProgress ? '#fff8e1' : 'white'
-          })}
-          suppressDragLeaveHidesColumns={true}
-          suppressMakeColumnVisibleAfterUnGroup={true}
-          animateRows={true}
-          rowDragManaged={true}
-          suppressMoveWhenRowDragging={true}
-          onColumnMoved={() => setEditInProgress(true)}
-          onColumnPinned={() => setEditInProgress(true)}
-          onColumnVisible={() => setEditInProgress(true)}
-          suppressHorizontalScroll={false}
-          alwaysShowHorizontalScroll={isMobile}
-          tooltipShowDelay={isMobile ? 500 : 200}
-          tooltipMouseTrack={isMobile}
+          onCellValueChanged={() => setEditInProgress(true)}
+          pagination={true}
+          paginationPageSize={15}
+          getRowClass={params => (params.node.rowIndex % 2 !== 0 ? 'odd-row' : 'even-row')}
         />
       </div>
 
-      {isMobile && gridApi && (
-        <MobilePagination api={gridApi} />
-      )}
-
-      <div className="footer-info">
-        <div className="employee-count">
-          Showing {rowData.length} employees
-        </div>
-        {isMobile && (
-          <div className="mobile-hint">
-            ← Scroll → to see all columns
-          </div>
-        )}
-      </div>
+      <style>{`
+        :root {
+          --odd-bg: ${customColors.oddRowBackgroundColor};
+          --even-bg: ${customColors.backgroundColor};
+          --text-color: ${customColors.foregroundColor};
+        }
+        .${gridTheme} .ag-header {
+          background-color: ${customColors.headerBackgroundColor} !important;
+        }
+        .${gridTheme} .ag-header-cell-label {
+          color: ${customColors.headerTextColor} !important;
+        }
+        .${gridTheme} .ag-header-cell-resize::after {
+          background-color: ${customColors.resizeHandleColor} !important;
+        }
+        .odd-row .ag-cell {
+          background-color: var(--odd-bg) !important;
+          color: var(--text-color) !important;
+        }
+        .even-row .ag-cell {
+          background-color: var(--even-bg) !important;
+          color: var(--text-color) !important;
+        }
+        .freeze-controls {
+          margin: 15px 0;
+          padding: 10px;
+          background: #f0f0f0;
+          border-radius: 5px;
+        }
+        .freeze-controls h3 {
+          margin-top: 0;
+        }
+      `}</style>
     </div>
   );
 };
